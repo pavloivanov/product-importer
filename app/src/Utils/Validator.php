@@ -6,11 +6,12 @@ use Symfony\Component\Console\Exception\InvalidArgumentException;
 use function Symfony\Component\String\u;
 
 /**
- * Class Validator
+ * Class Validator validates input data related to Product
  */
 class Validator
 {
-    const ALLOWED_COLUMNS = ['sku', 'description', 'normalPrice', 'specialPrice'];
+    const REQUIRED_COLUMNS = ['sku', 'description', 'normalPrice', 'specialPrice'];
+
     /**
      * @param array $record
      * @return array
@@ -21,10 +22,8 @@ class Validator
             throw new InvalidArgumentException('The record can not be empty.');
         }
 
-//        var_dump($record);
-
         foreach ($record as $column => $value) {
-            if (!in_array($column, self::ALLOWED_COLUMNS)) {
+            if (!in_array($column, self::REQUIRED_COLUMNS)) {
                 throw new InvalidArgumentException(sprintf('Column %s does not exist', $column));
             }
         }
@@ -32,9 +31,33 @@ class Validator
         $record['sku'] = $this->validateSku($record['sku']);
         $record['description'] = $this->validateDescription($record['description']);
         $record['normalPrice'] = $this->validateNormalPrice($record['normalPrice']);
-        $record['specialPrice'] = $this->validateSpecialPrice($record['normalPrice'], $record['specialPrice']);
+        $record['specialPrice'] = $this->validateSpecialPrice(
+            $record['normalPrice'],
+            $record['specialPrice'] ?? null
+        );
 
         return $record;
+    }
+
+    /**
+     * @param array $columns
+     * @return array
+     */
+    public function validateColumns(array $columns): array
+    {
+        if (empty($columns)) {
+            throw new InvalidArgumentException(
+                sprintf('Columns: %s are not found in file', implode(', ', self::REQUIRED_COLUMNS))
+            );
+        }
+
+        foreach (self::REQUIRED_COLUMNS as $ALLOWED_COLUMN) {
+            if (!in_array($ALLOWED_COLUMN, $columns)) {
+                throw new InvalidArgumentException(sprintf('Required column %s does not exist', $ALLOWED_COLUMN));
+            }
+        }
+
+        return $columns;
     }
 
     /**
@@ -51,7 +74,8 @@ class Validator
             throw new InvalidArgumentException('The sku must be at least 6 characters long.');
         }
 
-        return $sku;
+        // Remove any invalid or hidden characters
+        return preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $sku);
     }
 
     /**
@@ -64,7 +88,8 @@ class Validator
             throw new InvalidArgumentException('The description can not be empty.');
         }
 
-        return $description;
+        // Remove any invalid or hidden characters
+        return preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $description);
     }
 
     /**
@@ -77,8 +102,8 @@ class Validator
             throw new InvalidArgumentException('The normal price can not be empty.');
         }
 
-        if (!is_numeric($normalPrice)) {
-            throw new InvalidArgumentException('The normal price must be numeric.');
+        if (!is_numeric($normalPrice) || $normalPrice < 0) {
+            throw new InvalidArgumentException('The normal price must be positive numeric.');
         }
 
         return floatval($normalPrice);
@@ -93,6 +118,10 @@ class Validator
     {
         if (empty($specialPrice)) {
             return null;
+        }
+
+        if (!is_numeric($specialPrice) || $specialPrice < 0) {
+            throw new InvalidArgumentException('The special price must be positive numeric.');
         }
 
         if ($normalPrice <= $specialPrice) {

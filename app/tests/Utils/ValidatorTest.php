@@ -52,7 +52,7 @@ class ValidatorTest extends TestCase
     public function testValidateNormalPriceInvalid(): void
     {
         $this->expectException('Exception');
-        $this->expectExceptionMessage('The normal price must be numeric.');
+        $this->expectExceptionMessage('The normal price must be positive numeric.');
         $this->validator->validateNormalPrice('INVALID');
     }
 
@@ -77,5 +77,14 @@ class ValidatorTest extends TestCase
         $this->expectException('Exception');
         $this->expectExceptionMessage(sprintf('Column %s does not exist', $invalidColumn));
         $this->validator->validate([$invalidColumn => 'value 1', 'sku' => 'BP063-0001']);
+    }
+
+    public function testValidateColumnsInvalid(): void
+    {
+        $missingColumn = 'description';
+
+        $this->expectException('Exception');
+        $this->expectExceptionMessage(sprintf('Required column %s does not exist', $missingColumn));
+        $this->validator->validateColumns(['sku', 'normalPrice']);
     }
 }
