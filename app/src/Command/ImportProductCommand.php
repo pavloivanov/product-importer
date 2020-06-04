@@ -50,18 +50,27 @@ class ImportProductCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $io->title('Attempting to import product');
 
-        $csv = FileReaderFactory::createFileReader(self::DATA_INPUT_PATH . $csvFilename);
+        try {
+            $csv = FileReaderFactory::createFileReader(self::DATA_INPUT_PATH . $csvFilename);
+        } catch (\Exception $e) {
+            $io->error($e->getMessage());
+
+            return 1;
+        }
 
         $this->productService->importCsv($csv);
 
         if ($this->productService->countProductsWithErrors() > 0) {
-            $io->caution($this->productService->countProductsWithErrors() . ' invalid products are skipped');
+            $productsCount = $this->productService->countProductsWithErrors();
+            $io->caution(
+                sprintf($productsCount . ' invalid %s skipped.', ($productsCount === 1 ? 'product is' : 'products are'))
+            );
         }
 
         $io->note($this->productService->countCreatedProducts() . ' New products created.');
         $io->note($this->productService->countUpdatedProducts() . ' Products updated.');
 
-        $io->success($this->productService->countSuccessfulProducts() . ' products are imported successfully.');
+        $io->success($this->productService->countSuccessfulProducts() . ' records are imported successfully.');
 
         // TODO: remove processed file from data/input folder
 

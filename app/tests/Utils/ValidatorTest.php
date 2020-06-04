@@ -7,6 +7,9 @@ use PHPUnit\Framework\TestCase;
 
 class ValidatorTest extends TestCase
 {
+    /**
+     * @var Validator
+     */
     private $validator;
 
     protected function setUp(): void
@@ -20,6 +23,7 @@ class ValidatorTest extends TestCase
 
         $this->assertSame($test, $this->validator->validateSku($test));
     }
+
     public function testValidateSkuEmpty(): void
     {
         $this->expectException('Exception');
@@ -70,15 +74,6 @@ class ValidatorTest extends TestCase
         $this->validator->validate([]);
     }
 
-    public function testValidateInvalid(): void
-    {
-        $invalidColumn = 'nonExistentColumn';
-
-        $this->expectException('Exception');
-        $this->expectExceptionMessage(sprintf('Column %s does not exist', $invalidColumn));
-        $this->validator->validate([$invalidColumn => 'value 1', 'sku' => 'BP063-0001']);
-    }
-
     public function testValidateColumnsInvalid(): void
     {
         $missingColumn = 'description';
@@ -86,5 +81,14 @@ class ValidatorTest extends TestCase
         $this->expectException('Exception');
         $this->expectExceptionMessage(sprintf('Required column %s does not exist', $missingColumn));
         $this->validator->validateColumns(['sku', 'normalPrice']);
+    }
+
+    public function testValidateValid(): void
+    {
+        $record = ['sku' => 'BP063-0001', 'description' => 'Prod 1', 'normalPrice' => 44.99];
+        $expected = ['sku' => 'BP063-0001', 'description' => 'Prod 1', 'normalPrice' => 44.99, 'specialPrice' => null];
+
+        $actual = $this->validator->validate($record);
+        $this->assertSame($expected, $actual);
     }
 }

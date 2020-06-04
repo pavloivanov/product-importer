@@ -10,7 +10,11 @@ use function Symfony\Component\String\u;
  */
 class Validator
 {
-    const REQUIRED_COLUMNS = ['sku', 'description', 'normalPrice', 'specialPrice'];
+    const REQUIRED_COLUMNS = ['sku', 'description', 'normalPrice'];
+
+    const ALLOWED_COLUMNS = [...self::REQUIRED_COLUMNS, 'specialPrice'];
+
+    const MAX_NUMBER_OF_DECIMALS_IN_PRICE = 2;
 
     /**
      * @param array $record
@@ -20,12 +24,6 @@ class Validator
     {
         if (empty($record)) {
             throw new InvalidArgumentException('The record can not be empty.');
-        }
-
-        foreach ($record as $column => $value) {
-            if (!in_array($column, self::REQUIRED_COLUMNS)) {
-                throw new InvalidArgumentException(sprintf('Column %s does not exist', $column));
-            }
         }
 
         $record['sku'] = $this->validateSku($record['sku']);
@@ -51,9 +49,15 @@ class Validator
             );
         }
 
-        foreach (self::REQUIRED_COLUMNS as $ALLOWED_COLUMN) {
-            if (!in_array($ALLOWED_COLUMN, $columns)) {
-                throw new InvalidArgumentException(sprintf('Required column %s does not exist', $ALLOWED_COLUMN));
+        foreach (self::REQUIRED_COLUMNS as $REQUIRED_COLUMN) {
+            if (!in_array($REQUIRED_COLUMN, $columns)) {
+                throw new InvalidArgumentException(sprintf('Required column %s does not exist', $REQUIRED_COLUMN));
+            }
+        }
+
+        foreach ($columns as $column) {
+            if (!in_array($column, self::ALLOWED_COLUMNS)) {
+                throw new InvalidArgumentException(sprintf('Required column %s does not exist', $column));
             }
         }
 
@@ -74,8 +78,11 @@ class Validator
             throw new InvalidArgumentException('The sku must be at least 6 characters long.');
         }
 
-        // Remove any invalid or hidden characters
-        return preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $sku);
+        if (!preg_match('/^[a-zA-Z0-9_\-]+$/', $sku)) {
+            throw new InvalidArgumentException('The sku must be alpha numeric with underscore or minus chars.');
+        }
+
+        return $sku;
     }
 
     /**
@@ -88,8 +95,12 @@ class Validator
             throw new InvalidArgumentException('The description can not be empty.');
         }
 
-        // Remove any invalid or hidden characters
-        return preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $description);
+        // find any invalid or hidden characters
+        if (preg_match('/[\x00-\x1F\x80-\xFF`]/', $description)) {
+            throw new InvalidArgumentException('The description must be alpha numeric.');
+        }
+
+        return $description;
     }
 
     /**
@@ -105,6 +116,8 @@ class Validator
         if (!is_numeric($normalPrice) || $normalPrice < 0) {
             throw new InvalidArgumentException('The normal price must be positive numeric.');
         }
+
+        $this->validateDecimalsInPrice($normalPrice, 'normal price');
 
         return floatval($normalPrice);
     }
@@ -128,6 +141,22 @@ class Validator
             throw new InvalidArgumentException('The special price must be less than normal price.');
         }
 
+        $this->validateDecimalsInPrice($specialPrice, 'special price');
+
         return floatval($specialPrice);
+    }
+
+    /**
+     * @param float $price
+     * @param string $field
+     */
+    private function validateDecimalsInPrice(float $price, string $field): void
+    {
+        $decimalsCount = (strlen($price) - strrpos($price, '.') - 1);
+        if ($decimalsCount > self::MAX_NUMBER_OF_DECIMALS_IN_PRICE) {
+            throw new InvalidArgumentException(
+                sprintf('The %s must maximum %s decimal.', $field, self::MAX_NUMBER_OF_DECIMALS_IN_PRICE)
+            );
+        }
     }
 }
