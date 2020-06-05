@@ -78,6 +78,10 @@ class Validator
             throw new InvalidArgumentException('The sku must be at least 6 characters long.');
         }
 
+        if (u($sku)->length() > 200 ) {
+            throw new InvalidArgumentException('The sku must be no longer than 100 characters.');
+        }
+
         if (!preg_match('/^[a-zA-Z0-9_\-]+$/', $sku)) {
             throw new InvalidArgumentException('The sku must be alpha numeric with underscore or minus chars.');
         }
@@ -93,6 +97,10 @@ class Validator
     {
         if (empty($description)) {
             throw new InvalidArgumentException('The description can not be empty.');
+        }
+
+        if (u($description)->length() > 255 ) {
+            throw new InvalidArgumentException('The description must be no longer than 255 characters.');
         }
 
         // find any invalid or hidden characters

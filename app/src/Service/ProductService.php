@@ -61,6 +61,8 @@ class ProductService
         $this->em = $em;
         $this->logger = $logger;
         $this->validator = $validator;
+
+        $this->em->getConnection()->getConfiguration()->setSQLLogger(null);
     }
 
     /**
@@ -80,6 +82,7 @@ class ProductService
 
                 if ($recordsCounter === self::MAX_NUMBER_RECORDS_TO_BE_SAVED_AT_ONCE) {
                     $this->em->flush();
+                    $this->em->clear();
                     $recordsCounter = 0;
                     $this->logger->info(sprintf($flushRecordsMessage, $recordsCounter));
                 }
@@ -169,6 +172,7 @@ class ProductService
         // To avoid duplicate entry issue we need to flush new records
         $this->em->persist($product);
         $this->em->flush();
+        $this->em->clear();
 
         $this->createdProductsCount++;
     }

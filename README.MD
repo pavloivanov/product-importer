@@ -53,7 +53,7 @@ Run Import Product Command:
 ## Testing
 Run unit tests:
 
-`docker-compose exec php php bin/phpunit`
+`docker-compose exec php php vendor/bin/phpunit`
 
 ### Adminer - MySQL web ui
 You can use adminer to connect to mysql server by following link

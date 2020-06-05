@@ -5,6 +5,8 @@ use App\Entity\Product;
 use App\Repository\ProductRepository;
 use App\Service\ProductService;
 use App\Utils\Validator;
+use Doctrine\DBAL\Configuration;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager;
 use League\Csv\Reader;
 use Monolog\Logger;
@@ -77,6 +79,17 @@ class ProductServiceTest extends TestCase
         $entityManager->expects($this->any())
             ->method('getRepository')
             ->willReturn($productRepository);
+
+        $configuration = $this->createMock(Configuration::class);
+
+        $connection = $this->createMock(Connection::class);
+        $connection->expects($this->any())
+            ->method('getConfiguration')
+            ->willReturn($configuration);
+
+        $entityManager->expects($this->any())
+            ->method('getConnection')
+            ->willReturn($connection);
 
         return $entityManager;
     }
